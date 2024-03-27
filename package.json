@@ -1,0 +1,28 @@
+{
+  "name": "tradingbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install:chain": "curl -L https://foundry.paradigm.xyz | bash && clear && echo $0 | exec && foundryup",
+    "start:chain": "anvil --chain-id 1337 --fork-url"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.3",
+    "ts-node": "^10.9.1"
+  },
+  "dependencies": {
+    "@uniswap/sdk": "^3.0.3",
+    "@uniswap/sdk-core": "^3.1.1",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-periphery": "^1.4.1",
+    "@uniswap/v3-sdk": "^3.9.0",
+    "dotenv": "^8.2.0",
+    "ethers": "v5.7"
+  }
+}
