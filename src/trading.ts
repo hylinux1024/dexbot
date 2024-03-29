@@ -187,7 +187,7 @@ export async function getTokenTransferApproval(
 }
 
 
-export async function swap_main(token_in:Token,token_out:Token,amount:number,fee:number) {
+export async function trading(token_in:Token,token_out:Token,amount:number,fee:number) {
   var tokenConfig: TokenConfig = {
     in: token_in,
     amountIn: amount,

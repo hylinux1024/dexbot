@@ -13,16 +13,15 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.11.30",
-    "typescript": "^5.4.3",
-    "ts-node": "^10.9.1"
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.3"
   },
   "dependencies": {
-    "@uniswap/sdk": "^3.0.3",
-    "@uniswap/sdk-core": "^3.1.1",
-    "@uniswap/v3-core": "^1.0.1",
-    "@uniswap/v3-periphery": "^1.4.1",
+    "@types/node": "^16.7.13",
+    "@uniswap/sdk-core": "^3.1.0",
+    "@uniswap/smart-order-router": "^3.0.6",
     "@uniswap/v3-sdk": "^3.9.0",
-    "dotenv": "^8.2.0",
-    "ethers": "v5.7"
+    "ethers": "^5.7.2",
+    "typescript": "^4.4.2"
   }
 }

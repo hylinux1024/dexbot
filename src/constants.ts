@@ -10,7 +10,10 @@ export const QUOTER_CONTRACT_ADDRESS =
 export const SWAP_ROUTER_ADDRESS = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 export const SWAP_ROUTER_ADDRESS_V2 = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
 export const WETH_CONTRACT_ADDRESS =
-  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+
+export const V3_SWAP_ROUTER_ADDRESS =
+  '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45'
 
 // Currencies and Tokens
 
@@ -30,7 +33,7 @@ export const USDC_TOKEN = new Token(
   'USD//C'
 )
 
-// ABI's
+// ABI's https://unpkg.com/@uniswap/v2-core@1.0.1/contracts/interfaces/IERC20.sol
 
 export const ERC20_ABI = [
   // Read-Only Functions

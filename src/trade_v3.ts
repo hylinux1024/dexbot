@@ -2,17 +2,11 @@ import {
     SupportedChainId,
     Token,
   } from '@uniswap/sdk-core'
-import { swap_main } from './trading'
+import { trading } from './trading'
 import { EventEmitter } from "events";
-EventEmitter.defaultMaxListeners = 150;
+EventEmitter.defaultMaxListeners = 15;
 
-async function do_trading(addressIn:string,addressOut:string,amountIn:number,fee:number) {
-    var tokenIn = new Token(SupportedChainId.MAINNET,addressIn,18);
-    var tokenOut = new Token(SupportedChainId.MAINNET,addressOut,18);
-    return swap_main(tokenIn,tokenOut,amountIn,fee);
-}
-
-function main() {
+async function main() {
     
     const args = process.argv.slice(2);
     // console.log(args);
@@ -40,9 +34,11 @@ function main() {
     }
 
     console.log(`addressIn: ${addressIn}, addressOut: ${addressOut}, amountIn: ${amountIn}, fee: ${fee}`);
-    do_trading(addressIn,addressOut,amountIn,fee).then(res=>{
-        console.log(`result:${res}`)
-    });
+
+    var tokenIn = new Token(SupportedChainId.MAINNET,addressIn,18);
+    var tokenOut = new Token(SupportedChainId.MAINNET,addressOut,18);
+    const res = await trading(tokenIn,tokenOut,amountIn,fee);
+    console.log(`result:${res}`);
 }
 
 main();

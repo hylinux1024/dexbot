@@ -1,6 +1,4 @@
 import {Token} from "@uniswap/sdk-core";
-import * as dotenv from "dotenv";
-dotenv.config();
 
 export enum Environment {
   LOCAL,
@@ -30,7 +28,7 @@ export interface AppConfig {
   // Example Configuration
   
   export const CurrentConfig: AppConfig = {
-    env: Environment.LOCAL,
+    env: Environment.MAINNET,
     rpc: {
       local: 'http://localhost:8545',
       mainnet: 'https://eth-mainnet.g.alchemy.com/v2/18GaGiQyDCtRjm2YdhEreGmyMXGbfA3s',
@@ -40,4 +38,9 @@ export interface AppConfig {
       privateKey:
         '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
     }
+  }
+
+  export interface QuoteResoult {
+    tokenOut: string,
+    amountOut: number
   }
