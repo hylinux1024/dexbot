@@ -5,7 +5,7 @@ import { BigNumber, ethers } from 'ethers'
 const MAX_DECIMALS = 18
 
 export function fromReadableAmount(
-  amount: number,
+  amount: number|string,
   decimals: number
 ): BigNumber {
   return ethers.utils.parseUnits(amount.toString(), decimals)

@@ -1,18 +1,15 @@
 import {
   AlphaRouter,
   SwapOptionsSwapRouter02,
-  SwapOptionsUniversalRouter,
   SwapRoute,
   SwapType,
 } from '@uniswap/smart-order-router'
-import { TradeType, CurrencyAmount, Percent, Token } from '@uniswap/sdk-core'
-import { CurrentConfig } from './config'
+import { TradeType, CurrencyAmount, Percent, Token, SupportedChainId } from '@uniswap/sdk-core'
 import {
   getWalletAddress,
   sendTransaction,
   TransactionState,
   getProvider,
-  fetchToken,
 } from './providers'
 import {
   MAX_FEE_PER_GAS,
@@ -23,10 +20,11 @@ import {
 import { fromReadableAmount } from './utils'
 import { ethers } from 'ethers'
 
-import * as util from "util"
 import { EventEmitter } from 'stream'
+import { checkAllowance, fetchToken } from './contracts'
 
 EventEmitter.defaultMaxListeners = 15;
+
 
 export async function generateRoute(tokenIn: Token, tokenOut: Token, amountIn: number): Promise<SwapRoute | null> {
   const router = new AlphaRouter({
@@ -35,16 +33,10 @@ export async function generateRoute(tokenIn: Token, tokenOut: Token, amountIn: n
   })
 
   const options: SwapOptionsSwapRouter02 = {
-    recipient: CurrentConfig.wallet.address,
+    recipient: getWalletAddress(),
     slippageTolerance: new Percent(50, 10_000),
-    deadline: Math.floor(Date.now() / 1000 + 1800),
+    deadline: Math.floor(Date.now() / 1000 + 60*30),
     type: SwapType.SWAP_ROUTER_02,
-  }
-
-  const optionsV1: SwapOptionsUniversalRouter = {
-    recipient: CurrentConfig.wallet.address,
-    slippageTolerance: new Percent(50, 10_000),
-    type: SwapType.UNIVERSAL_ROUTER,
   }
 
   const route = await router.route(
@@ -66,7 +58,7 @@ export async function generateRoute(tokenIn: Token, tokenOut: Token, amountIn: n
 export async function executeRoute(
   route: SwapRoute,
   tokenIn: Token,
-  amountOut: number
+  amountOut: string
 ): Promise<TransactionState> {
   const walletAddress = getWalletAddress()
   const provider = getProvider()
@@ -75,18 +67,28 @@ export async function executeRoute(
     throw new Error('Cannot execute a trade without a connected wallet')
   }
 
-  const tokenApproval = await getTokenTransferApproval(tokenIn, amountOut)
+  const allowance = await checkAllowance(tokenIn.address,walletAddress,V3_SWAP_ROUTER_ADDRESS)
+  if(!allowance) {
+    console.log("Not Allowance, Start Approving")
+    // 2^256 - 1
+    const tokenApproval = await getTokenTransferApproval(tokenIn, amountOut)
+    .catch(err => {
+      console.log(`Approval Error:\n ${err}`)
+    })
 
-  // Fail if transfer approvals do not go through
-  if (tokenApproval !== TransactionState.Sent) {
-    return TransactionState.Failed
+    // Fail if transfer approvals do not go through
+    if (tokenApproval !== TransactionState.Sent) {
+      return TransactionState.Failed
+    }
   }
-
+  console.log(`Start Sending Transaction`)
   const res = await sendTransaction({
     data: route.methodParameters?.calldata,
     to: V3_SWAP_ROUTER_ADDRESS,
     value: route?.methodParameters?.value,
     from: walletAddress,
+    gasPrice: route.gasPriceWei,
+    gasLimit: route.estimatedGasUsed,
     maxFeePerGas: MAX_FEE_PER_GAS,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   })
@@ -96,7 +98,7 @@ export async function executeRoute(
 
 export async function getTokenTransferApproval(
   token: Token,
-  amountToApprove: number
+  amountToApprove: string
 ): Promise<TransactionState> {
   const provider = getProvider()
   const address = getWalletAddress()
@@ -119,14 +121,47 @@ export async function getTokenTransferApproval(
         token.decimals
       ).toString()
     )
+    const gasPrice = await provider.getGasPrice()
 
     return sendTransaction({
       ...transaction,
       from: address,
+      gasPrice: gasPrice,
     })
   } catch (e) {
     console.error(e)
     return TransactionState.Failed
+  }
+}
+
+async function quoteAndTrade(tokenInAddress: string, tokenOutAddress: string, amountIn: number, trade: string) {
+  const [tokenIn, tokenOut] = await Promise.all([fetchToken(tokenInAddress), fetchToken(tokenOutAddress)])
+
+  console.log(`token in: ${tokenIn.symbol}`);
+  console.log(`token out: ${tokenOut.symbol}`);
+  console.log(`amount in: ${amountIn}`)
+  console.log(`trade: ${trade == 'trade'}`)
+  const route = await generateRoute(tokenIn, tokenOut, amountIn)
+
+  if (route == null) {
+    console.log(`Route is null, try another network.`)
+    return
+  }
+  const tokenAmountOut = route.quote.toSignificant(tokenOut.decimals)
+  const wei = fromReadableAmount(tokenAmountOut, tokenOut.decimals)
+  console.log(`Quote Exact Token Out: ${tokenAmountOut} ${tokenOut.symbol}`)
+  console.log(`Quote Exact Token Out(wei): ${wei}`)
+  console.log(`Quote Gas Adjusted: ${route.quoteGasAdjusted.toSignificant(tokenOut.decimals)} `)
+  console.log(`Estimated Gas Used USD: ${route.estimatedGasUsedUSD.toFixed(2)}`)
+  console.log(`Estimated Gas: ${route.estimatedGasUsed}`)
+  console.log(`Estimated Gas Price(wei): ${route.gasPriceWei}`)
+
+  if (trade == "trade") {
+    const res = await executeRoute(route, tokenIn, tokenAmountOut.toString())
+      .catch(err => {
+        console.log(`Transaction Failed\n ${err}`)
+      })
+    console.log(`Transaction: ${res}`)
   }
 }
 
@@ -140,18 +175,10 @@ async function main() {
   var tokenInAddress = args[0]
   var tokenOutAddress = args[1];
   var amountIn = parseFloat(args[2])
+  var trade = args[3]
 
-  const [tokenIn,tokenOut] = await Promise.all([fetchToken(tokenInAddress),fetchToken(tokenOutAddress)])
+  await quoteAndTrade(tokenInAddress, tokenOutAddress, amountIn, trade)
 
-  console.log(util.inspect(tokenIn));
-  console.log(util.inspect(tokenOut));
-  const route = await generateRoute(tokenIn, tokenOut, amountIn)
-
-  if (route == null) {
-    console.log(`Route is null`)
-    return
-  }
-  console.log(`Quote Exact In: ${route.quote.toFixed(10)}`)
 }
 
 main()

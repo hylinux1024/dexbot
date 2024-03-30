@@ -1,9 +1,6 @@
 import { BaseProvider } from '@ethersproject/providers'
-import { BigNumber, ethers, providers } from 'ethers'
-
-import { TokenConfig, Environment, CurrentConfig } from './config'
-import { ERC20_ABI } from './constants'
-import { SupportedChainId, Token } from '@uniswap/sdk-core'
+import { BigNumber, ethers } from 'ethers'
+import { Environment, CurrentConfig } from './config'
 
 // Single copies of provider and wallet
 const mainnetProvider = new ethers.providers.JsonRpcProvider(
@@ -42,37 +39,12 @@ export function getProvider(): BaseProvider {
 //   return wallet.provider
 // }
 
-export function getWalletAddress(): string | null {
+export function getWalletAddress(): string {
   return wallet.address
 }
 
 export function getWallet() {
   return wallet
-}
-
-export async function getERC20Contract(tokenAddress:string) {
-  const tokenContract = new ethers.Contract(
-    tokenAddress,
-    ERC20_ABI,
-    wallet
-  );
-  return tokenContract
-}
-
-export async function fetchToken(tokenAddress:string){
-  const contract = await getERC20Contract(tokenAddress)
-
-  const symbol = await contract.symbol()
-  const decimals = await contract.decimals()
-  
-  return new Token(SupportedChainId.MAINNET,tokenAddress,decimals,symbol)
-}
-
-export async function getERC20Balance(tokenAddress:string) {
-  const tokenContract = await getERC20Contract(tokenAddress);
-  let balance = await tokenContract.balanceOf(wallet.address);
-  const decimals = await tokenContract.decimals();
-  return ethers.utils.formatUnits(balance.toString(), decimals);
 }
 
 export async function sendTransaction(
@@ -93,6 +65,7 @@ function createWallet(): ethers.Wallet {
   if (CurrentConfig.env == Environment.LOCAL) {
     provider = new ethers.providers.JsonRpcProvider(CurrentConfig.rpc.local)
   }
+  
   return new ethers.Wallet(CurrentConfig.wallet.privateKey, provider)
 }
 
