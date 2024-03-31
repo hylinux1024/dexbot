@@ -76,7 +76,7 @@ async function sendTransactionViaWallet(
     transaction.value = BigNumber.from(transaction.value)
   }
   const txRes = await wallet.sendTransaction(transaction)
-
+  console.log(`Transaction hash: ${txRes.hash}`)
   let receipt = null
   const provider = getProvider()
   if (!provider) {

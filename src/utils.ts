@@ -1,4 +1,4 @@
-import { Token, TradeType } from '@uniswap/sdk-core'
+import { SupportedChainId, Token, TradeType } from '@uniswap/sdk-core'
 import { Trade } from '@uniswap/v3-sdk'
 import { BigNumber, ethers } from 'ethers'
 
@@ -19,4 +19,8 @@ export function displayTrade(trade: Trade<Token, Token, TradeType>): string {
   return `${trade.inputAmount.toExact()} ${
     trade.inputAmount.currency.symbol
   } for ${trade.outputAmount.toExact()} ${trade.outputAmount.currency.symbol}`
+}
+
+export function chainId2ChainName(chainId:number):string|undefined {
+  return Object.keys(SupportedChainId).find(key=>SupportedChainId[key as keyof typeof SupportedChainId]==chainId)
 }

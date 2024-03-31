@@ -27,15 +27,16 @@ export interface AppConfig {
   }
 }
 
+// network 
+export const AppChainId: number = 1
+
 // Example Configuration
 
 export const CurrentConfig: AppConfig = {
-  env: Environment.MAINNET,
+  env: Environment.LOCAL,
   rpc: {
     local: 'http://localhost:8545',
-    // mainnet: 'https://rpc.sepolia.org'
-    // mainnet: 'https://sepolia.infura.io/v3/299ad94a7a924ddd85057223b3a86f93'
-    mainnet: 'https://eth-mainnet.g.alchemy.com/v2/18GaGiQyDCtRjm2YdhEreGmyMXGbfA3s',
+    mainnet: `${process.env.JSON_RPC_PROVIDER}`,
   },
   wallet: {
     privateKey: `${process.env.PRIVATE_KEY}`,

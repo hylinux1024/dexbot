@@ -2,10 +2,12 @@ import { ethers } from "ethers";
 import { ERC20_ABI } from "./constants";
 import { getProvider, getWallet, getWalletAddress } from "./providers";
 import { SupportedChainId, Token } from "@uniswap/sdk-core";
+import { AppChainId } from "./config";
 
 export async function checkAllowance(tokenAddress:string,owner:string, spender:string) {
     const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, getProvider());
     const allowance = await tokenContract.allowance(owner, spender);
+    // console.log(`allowance: ${allowance}`)
     return allowance.gt(0);
 }
 
@@ -21,10 +23,16 @@ export function getERC20Contract(tokenAddress:string) {
   export async function fetchToken(tokenAddress:string){
     const contract = getERC20Contract(tokenAddress)
   
-    const symbol = await contract.symbol()
-    const decimals = await contract.decimals()
+    var symbol = ""
+    var decimals = 18
+    try {
+      symbol = await contract.symbol()
+      decimals = await contract.decimals()
+    } catch (err) {
+      console.log(`fetchToken error:\n ${err}`)
+    }
   
-    return new Token(SupportedChainId.MAINNET,tokenAddress,decimals,symbol)
+    return new Token(AppChainId,tokenAddress,decimals,symbol)
   }
   
   export async function getERC20Balance(tokenAddress:string) {

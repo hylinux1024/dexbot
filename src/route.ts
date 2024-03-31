@@ -10,6 +10,7 @@ import {
   sendTransaction,
   TransactionState,
   getProvider,
+  getWallet,
 } from './providers'
 import {
   MAX_FEE_PER_GAS,
@@ -17,18 +18,19 @@ import {
   ERC20_ABI,
   V3_SWAP_ROUTER_ADDRESS,
 } from './constants'
-import { fromReadableAmount } from './utils'
-import { ethers } from 'ethers'
+import { chainId2ChainName, fromReadableAmount } from './utils'
+import { BigNumber, ethers } from 'ethers'
 
 import { EventEmitter } from 'stream'
 import { checkAllowance, fetchToken } from './contracts'
+import { AppChainId, CurrentConfig, Environment } from './config'
+import { getCurrencyBalance } from './wallet'
 
 EventEmitter.defaultMaxListeners = 15;
 
-
 export async function generateRoute(tokenIn: Token, tokenOut: Token, amountIn: number): Promise<SwapRoute | null> {
   const router = new AlphaRouter({
-    chainId: 1,
+    chainId: AppChainId,
     provider: getProvider(),
   })
 
@@ -58,7 +60,6 @@ export async function generateRoute(tokenIn: Token, tokenOut: Token, amountIn: n
 export async function executeRoute(
   route: SwapRoute,
   tokenIn: Token,
-  amountOut: string
 ): Promise<TransactionState> {
   const walletAddress = getWalletAddress()
   const provider = getProvider()
@@ -68,10 +69,12 @@ export async function executeRoute(
   }
 
   const allowance = await checkAllowance(tokenIn.address,walletAddress,V3_SWAP_ROUTER_ADDRESS)
+  
   if(!allowance) {
     console.log("Not Allowance, Start Approving")
-    // 2^256 - 1
-    const tokenApproval = await getTokenTransferApproval(tokenIn, amountOut)
+    // 2^128 - 1
+    const approveAmount = BigNumber.from(2).pow(128).sub(BigNumber.from(1))
+    const tokenApproval = await getTokenTransferApproval(tokenIn, approveAmount.toString())
     .catch(err => {
       console.log(`Approval Error:\n ${err}`)
     })
@@ -80,6 +83,7 @@ export async function executeRoute(
     if (tokenApproval !== TransactionState.Sent) {
       return TransactionState.Failed
     }
+    console.log(`Approval is sent`)
   }
   console.log(`Start Sending Transaction`)
   const res = await sendTransaction({
@@ -87,8 +91,6 @@ export async function executeRoute(
     to: V3_SWAP_ROUTER_ADDRESS,
     value: route?.methodParameters?.value,
     from: walletAddress,
-    gasPrice: route.gasPriceWei,
-    gasLimit: route.estimatedGasUsed,
     maxFeePerGas: MAX_FEE_PER_GAS,
     maxPriorityFeePerGas: MAX_PRIORITY_FEE_PER_GAS,
   })
@@ -135,8 +137,10 @@ export async function getTokenTransferApproval(
 }
 
 async function quoteAndTrade(tokenInAddress: string, tokenOutAddress: string, amountIn: number, trade: string) {
+
   const [tokenIn, tokenOut] = await Promise.all([fetchToken(tokenInAddress), fetchToken(tokenOutAddress)])
 
+  console.log(`network: ${chainId2ChainName(AppChainId)}, local fork network: ${CurrentConfig.env==Environment.LOCAL}`);
   console.log(`token in: ${tokenIn.symbol}`);
   console.log(`token out: ${tokenOut.symbol}`);
   console.log(`amount in: ${amountIn}`)
@@ -157,7 +161,10 @@ async function quoteAndTrade(tokenInAddress: string, tokenOutAddress: string, am
   console.log(`Estimated Gas Price(wei): ${route.gasPriceWei}`)
 
   if (trade == "trade") {
-    const res = await executeRoute(route, tokenIn, tokenAmountOut.toString())
+    const balance = await getCurrencyBalance(getWallet(),getWalletAddress(),tokenIn)
+    console.log(`Current balance of ${tokenIn.symbol}: ${balance}`)
+
+    const res = await executeRoute(route, tokenIn)
       .catch(err => {
         console.log(`Transaction Failed\n ${err}`)
       })
